@@ -2,16 +2,27 @@
 """ Holds utils that are used by the app """
 import csv
 from typing import List
+import os
+from random import shuffle
 
 
+DICITIONARY_CSV_FILENAME = 'dictionary.csv'
+OUTPUT_DATASET_FILENAME = 'data.csv'
+INDEX = 0
+DEBUG = False
 WORDS = [
     ('እሱ', 'he'),
     ('ኣለዎ', 'has'),
     ('ወርቂ', 'gold'),
     ('ይሰርሕ', 'does'),
 ]
-INDEX = 0
-DEBUG = False
+if os.path.exists(DICITIONARY_CSV_FILENAME):
+    WORDS = []
+    with open(DICITIONARY_CSV_FILENAME, 'r', encoding='utf-8') as file_obj:
+        reader_obj = csv.reader(file_obj)
+        for row in reader_obj:
+            WORDS.append(row)
+    shuffle(WORDS)
 
 
 def word_generator() -> List[str]:
@@ -38,3 +49,13 @@ def update_csv(filename: str, data: List[str]):
         writer.writerow(data)
     if DEBUG:
         print("Data added to CSV file => ", data)
+
+
+def dataset_count(filename) -> int:
+    """ counts how many datasets are in a csv file"""
+    datas = []
+    with open(filename, 'r', encoding='utf-8') as file_obj:
+        reader_obj = csv.reader(file_obj)
+        for row in reader_obj:
+            datas.append(row)
+    return f'total words: {len(datas)}'

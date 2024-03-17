@@ -10,16 +10,16 @@ import wave
 import os
 import threading
 import tkinter as tk
+from tkinter import messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 from time import sleep
 import webbrowser
-from utils import word_generator, create_csv, update_csv
-
+from utils import word_generator, create_csv, update_csv, dataset_count
+from utils import OUTPUT_DATASET_FILENAME
 CSV_HEADERS = ["Tigrigna", "English", "file_name"]
-CSV_FILENAME = 'data.csv'
 RECORDINGS_OUTPUT_FOLDER = 'recordings'
 
 
@@ -46,21 +46,21 @@ class AudioRecorder:
         self.start_button = tk.Button(self.buttons_canvas,
                                       text="⏺️ Start Recording (1)",
                                       command=self.start_recording)
-        self.start_button.grid(column=0, row=0, padx=6, pady=3)
+        self.start_button.grid(column=0, row=0, padx=3, pady=3)
         self.stop_button = tk.Button(self.buttons_canvas,
                                      text="⏹ Stop Recording (2)",
                                      command=self.stop_recording,
                                      state=tk.DISABLED)
-        self.stop_button.grid(column=0, row=1, padx=6, pady=3)
+        self.stop_button.grid(column=0, row=1, padx=3, pady=3)
         self.next_button = tk.Button(self.buttons_canvas,
                                      text="✔️ Save & next word (3)",
                                      command=self.save_and_next_word,
                                      state=tk.DISABLED)
-        self.next_button.grid(column=1, row=0, padx=6, pady=3)
+        self.next_button.grid(column=1, row=0, padx=3, pady=3)
         self.skip_button = tk.Button(self.buttons_canvas,
                                      text="⛔ Skip & next word (4)",
                                      command=self.skip_word)
-        self.skip_button.grid(column=1, row=1, padx=6, pady=3)
+        self.skip_button.grid(column=1, row=1, padx=3, pady=3)
 
         # shortcuts for the buttons
         self.root.bind('1', lambda x: self.start_recording())
@@ -70,9 +70,15 @@ class AudioRecorder:
 
         # lable - text being recorded
         self.word_label = tk.Label(self.buttons_canvas, text=self.filename[0],
-                                   font=("Helvetica", 42))
-        self.word_label.grid(column=2, row=0, rowspan=2, padx=30)
-
+                                   font=("Helvetica", 20))
+        self.word_label.grid(column=2, row=0, rowspan=1, padx=30, sticky='w')
+        self.definition_label = tk.Label(self.buttons_canvas,
+                                         text=self.filename[1])
+        self.definition_label.grid(column=2, row=1, padx=30, sticky='w')
+        self.dataset_count_lable = tk.Label(self.buttons_canvas,
+                                            text=dataset_count(
+                                                OUTPUT_DATASET_FILENAME))
+        self.dataset_count_lable.grid(column=2, row=2, padx=30, sticky='w')
         self.buttons_canvas.pack(pady=10, padx=50, side='top', anchor='w')
 
         # audio wave plotter
@@ -119,6 +125,7 @@ class AudioRecorder:
         self.stop_button.config(state=tk.DISABLED)
         self.skip_button.config(state=tk.NORMAL)
         self.next_button.config(state=tk.NORMAL)
+
         self.status_label['text'] = 'Recording done, waiting for save...'
 
     def save_and_next_word(self):
@@ -129,6 +136,9 @@ class AudioRecorder:
         self.have_data = False
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
+        self.definition_label['text'] = self.filename[1]
+        self.dataset_count_lable['text'] = dataset_count(
+                                            OUTPUT_DATASET_FILENAME)
         self.next_button.config(state=tk.DISABLED)
         self.status_label['text'] = 'Audio saved succesfully ✔️'
 
@@ -138,6 +148,7 @@ class AudioRecorder:
             return
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
+        self.definition_label['text'] = self.filename[1]
         self.have_data = False
         self.next_button.config(state=tk.DISABLED)
         self.status_label['text'] = 'Word has been skipped ⚠️'
@@ -190,11 +201,13 @@ class AudioRecorder:
             os.makedirs(self.output_folder)
 
         output_path = os.path.join(self.output_folder,
-                                   self.filename[0] + ".wav")
+                                   self.filename[0].replace('/', '') + ".wav")
         counter = 0
         while os.path.exists(output_path):
             output_path = os.path.join(self.output_folder,
-                                       self.filename[0]+f'({counter})'+".wav")
+                                       self.filename[0]
+                                       .replace('/', '') +
+                                       f'({counter})'+".wav")
             counter += 1
         wave_file = wave.open(output_path, 'wb')
         wave_file.setnchannels(self.channels)
@@ -202,8 +215,8 @@ class AudioRecorder:
         wave_file.setframerate(self.rate)
         wave_file.writeframes(b''.join(self.frames))
         wave_file.close()
-        update_csv(CSV_FILENAME, [self.filename[0],
-                                  self.filename[1], output_path])
+        update_csv(OUTPUT_DATASET_FILENAME, [self.filename[0],
+                   self.filename[1], output_path])
 
     def run(self):
         """ runs the tkinter """
@@ -212,11 +225,14 @@ class AudioRecorder:
     def on_closing(self):
         """ opens a pop up message to confirm if the user wants to quit """
         self.stop_recording()
-        self.root.destroy()
+        result = messagebox.askyesno("Exit Application",
+                                     "Do you really want to exit?")
+        if result:
+            self.root.quit()
 
 
 if __name__ == "__main__":
-    if not os.path.exists(CSV_FILENAME):
-        create_csv(CSV_FILENAME, CSV_HEADERS)
+    if not os.path.exists(OUTPUT_DATASET_FILENAME):
+        create_csv(OUTPUT_DATASET_FILENAME, CSV_HEADERS)
     recorder = AudioRecorder()
     recorder.run()
