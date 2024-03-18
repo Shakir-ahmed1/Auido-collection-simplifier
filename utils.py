@@ -9,13 +9,14 @@ from random import shuffle
 DICITIONARY_CSV_FILENAME = 'dictionary.csv'
 OUTPUT_DATASET_FILENAME = 'data.csv'
 INDEX = 0
-DEBUG = False
 WORDS = [
     ('እሱ', 'he'),
     ('ኣለዎ', 'has'),
     ('ወርቂ', 'gold'),
     ('ይሰርሕ', 'does'),
 ]
+CSV_HEADERS = ["Tigrigna", "English", "file_name"]
+
 if os.path.exists(DICITIONARY_CSV_FILENAME):
     WORDS = []
     with open(DICITIONARY_CSV_FILENAME, 'r', encoding='utf-8') as file_obj:
@@ -37,23 +38,23 @@ def create_csv(filename: str, headers: List[str]):
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
-    if DEBUG:
-        print(f"CSV file '{filename}' created successfully.")
 
 
 def update_csv(filename: str, data: List[str]):
     """ appends a new row to a csv file"""
+    if not os.path.exists(filename):
+        create_csv(filename, CSV_HEADERS)
     with open(filename, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         data = list(data)
         writer.writerow(data)
-    if DEBUG:
-        print("Data added to CSV file => ", data)
 
 
-def dataset_count(filename) -> int:
+def dataset_count(filename: str) -> int:
     """ counts how many datasets are in a csv file"""
     datas = []
+    if not os.path.exists(filename):
+        create_csv(filename, CSV_HEADERS)
     with open(filename, 'r', encoding='utf-8') as file_obj:
         reader_obj = csv.reader(file_obj)
         for row in reader_obj:
