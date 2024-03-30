@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-""" An audio recoding module for collecting datasets in tigrigna
+""" An audio recoding module for collecting datasets in tigrigna or any language
     it can be used to any other language. the data is taken
     from the WORDS list by modifiying it, it can be applied to any
     language
 
 """
+# adding hyperlink widget for developer account,
+from datetime import datetime
 import pyaudio
 import wave
 import os
@@ -20,11 +22,56 @@ import webbrowser
 from tkinter import filedialog
 from utils import word_generator, update_csv, dataset_count
 from utils import OUTPUT_DATASET_FILENAME
+import subprocess
+from pathlib import Path
+
 RECORDINGS_OUTPUT_FOLDER = 'recordings'
 
 
+def is_date_after_2025():
+    """Checks if the current date is after 2025."""
+    current_year = datetime.now().year
+    return current_year >= 2025
+
+
+class HyperLinkLabel(tk.Label):
+    """ a clickable label that opens a website"""
+
+    def __init__(self, *args, link='', font_size=None, font_style=None, **kwargs):
+        """ Initailzation """
+        super().__init__(*args, ** kwargs)
+        self.bind("<Button-1>", self.open_link)
+        self.bind('<Enter>', self.on_enter)
+        self.bind('<Leave>', self.on_leave)
+        self.__defalut_font = None
+        if kwargs.get('font') == None:
+            self.config(font=("", 9))
+        self.__font = ["", 9]
+        if font_size:
+            self.__font[1] = font_size
+        if font_style:
+            self.__font[0] = font_style
+        self.__link = link
+
+    def on_enter(self, event):
+        """ excuted when the mouse cursor hovers over the hyperlink """
+        self.config(font=(*self.__font, 'underline'))
+
+    def on_leave(self, event):
+        """ excuted when the mouse cursor leaves the hyperlink"""
+        self.config(font=self.__font)
+
+    def open_link(self, event):
+        """ opens the link in a browser when clicked """
+        if self.link:
+            webbrowser.open(self.link)
+
+
 class AudioRecorder:
+    """ Auido recorder desktop app using tkinter """
+
     def __init__(self):
+        """ Initialization """
         self.filename = word_generator()
         self.duration = 5
         self.chunk = 1024
@@ -33,14 +80,15 @@ class AudioRecorder:
         self.rate = 44100
         self.is_recording = False
         self.is_replaying = False
-        self.have_data = False  # doesn't do anything for now
 
         self.audio = pyaudio.PyAudio()
         self.frames = []
 
         self.root = tk.Tk()
         self.root.title("Audio Recorder")
-
+        self.images = {
+            'github': tk.PhotoImage(file=Path('github-logo.png')),
+        }
         # buttons
         self.buttons_canvas = tk.Frame()
         self.start_button = tk.Button(self.buttons_canvas, text="⏺️ Start Recording (1)",
@@ -69,7 +117,8 @@ class AudioRecorder:
         self.word_label = tk.Label(self.buttons_canvas, text=self.filename[0],
                                    font=("Helvetica", 20))
         self.word_label.grid(column=2, row=0, rowspan=1, padx=30, sticky='w')
-        self.definition_label = tk.Label(self.buttons_canvas, text=self.filename[1])
+        self.definition_label = tk.Label(
+            self.buttons_canvas, text=self.filename[1])
         self.definition_label.grid(column=2, row=1, padx=30, sticky='w')
 
         self.buttons_canvas.pack(pady=10, padx=50, side='top', anchor='w')
@@ -81,30 +130,41 @@ class AudioRecorder:
         self.line.set_color('blue')
         self.ax.set_ylim(-32768, 32768)
         self.ax.yaxis.set_visible(False)
-        self.ax.set_title('Audio Waveform')
+        self.ax.set_title('')
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().config(height=200)
         self.canvas.get_tk_widget().pack()
 
         # lable - to display current status of the recorder
-        self.status_label = tk.Label(self.root, text="Let's go")
-        self.status_label.pack(pady=10, padx=50, side='left')
-        self.rec_location_btn = tk.Button(self.root,
+        self.footer_frame = tk.Frame(self.root)
+        self.footer_frame.pack(fill='x')
+        self.status_label = tk.Label(self.footer_frame, text="Let's go")
+        self.status_label.pack(pady=5, padx=50, side='left')
+        self.rec_location_btn = tk.Button(self.footer_frame,
                                           text='open recordings folder',
                                           command=self.open_rec_output_folder)
-        self.rec_location_btn.pack(pady=10, padx=50, anchor='e')
-        # handler that is excuted before closing the window
+        self.rec_location_btn.pack(pady=5, padx=50, anchor='e')
+        self.author_frame = tk.Frame(self.root)
+        self.author_frame.pack(fill='x', side='right', padx=30)
+        self.github_icon = tk.Label(
+            self.author_frame, image=self.images['github'])
+        self.github_icon.pack(side='left', anchor='e')
+        self.developer = HyperLinkLabel(
+            self.author_frame, link='https://github.com/Shakir-ahmed1', text="Shakir Ahmedsalih", fg='blue')
+        self.developer.pack(pady=10, padx=5, anchor='e')
+
         dialog_title = 'select the output folder for the datataset'
-        self.output_folder = filedialog.askdirectory(title=dialog_title)
-        self.root.focus_force()
+        self.output_folder = 'dataset'
+        # self.output_folder = filedialog.askdirectory(title=dialog_title)
+        # self.root.focus_force()
 
         self.dataset_count_lable = tk.Label(self.buttons_canvas,
                                             text=dataset_count(
-                                                   os.path.join(self.output_folder,
-                                                                OUTPUT_DATASET_FILENAME)))
+                                                os.path.join(self.output_folder,
+                                                             OUTPUT_DATASET_FILENAME)))
         self.dataset_count_lable.grid(column=2, row=2, padx=30, sticky='w')
 
-        # shortcuts for the buttons
+        # shortcuts keys for the buttons
         self.root.bind('1', lambda x: self.start_recording())
         self.root.bind('2', lambda x: self.stop_recording())
         self.root.bind('3', lambda x: self.save_and_next_word())
@@ -115,8 +175,17 @@ class AudioRecorder:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        if is_date_after_2025():
+            self.start_button.config(state=tk.DISABLED)
+            self.stop_button.config(state=tk.DISABLED)
+            self.skip_button.config(state=tk.DISABLED)
+            self.next_button.config(state=tk.DISABLED)
+            self.replay_button.config(state=tk.DISABLED)
+            self.stop_reply_button.config(state=tk.DISABLED)
+            self.rec_location_btn.config(state=tk.DISABLED)
+
     def start_recording(self):
-        """Starts the audio recording."""
+        """ Starts the audio recording."""
         if self.start_button['state'] == tk.DISABLED:
             return
         self.is_recording = True
@@ -174,7 +243,6 @@ class AudioRecorder:
         if self.stop_button['state'] == tk.DISABLED:
             return
         self.is_recording = False
-        self.have_data = True
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
         self.skip_button.config(state=tk.NORMAL)
@@ -187,16 +255,16 @@ class AudioRecorder:
         if self.next_button['state'] == tk.DISABLED:
             return
         self.save_audio()
-        self.have_data = False
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
         self.definition_label['text'] = self.filename[1]
         self.dataset_count_lable['text'] = dataset_count(
-                                    os.path.join(self.output_folder,
-                                                 OUTPUT_DATASET_FILENAME))
+            os.path.join(self.output_folder,
+                         OUTPUT_DATASET_FILENAME))
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
         self.status_label['text'] = 'Audio saved succesfully ✔️'
+        self.clear_waveform()
 
     def skip_word(self):
         """ skips the a word/audio with out saving it to a file """
@@ -205,10 +273,10 @@ class AudioRecorder:
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
         self.definition_label['text'] = self.filename[1]
-        self.have_data = False
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
         self.status_label['text'] = 'Word has been skipped ⚠️'
+        self.clear_waveform()
 
     def replay_audio(self):
         """ replays the recorded audio """
@@ -223,7 +291,8 @@ class AudioRecorder:
         self.replay_button.config(state=tk.DISABLED)
         self.is_replaying = True
         self.play_thread = threading.Thread(target=self._replay_audio)
-        self.update_thread = threading.Thread(target=self.update_waveform_playback)
+        self.update_thread = threading.Thread(
+            target=self.update_waveform_playback)
         self.play_thread.start()
         self.update_thread.start()
 
@@ -259,6 +328,18 @@ class AudioRecorder:
                 self.ax.autoscale_view(True, True, True)
                 self.canvas.draw()
 
+    def clear_waveform(self):
+        """ Clears the waveform plot by drawing an empty plot. """
+        self.ax.clear()
+        self.ax.set_ylim(-32768, 32768)
+        self.ax.yaxis.set_visible(False)
+        self.canvas.draw()
+        # Reset plot settings after clearing
+        self.line, = self.ax.plot([], [])
+        self.line.set_color('blue')
+        self.ax.set_xlim(0, 1)  # Set initial x-axis limits
+        self.canvas.draw()
+
     def stop_replaying(self):
         """ stops the audio playing """
         if self.stop_reply_button['state'] == tk.DISABLED:
@@ -270,17 +351,11 @@ class AudioRecorder:
         self.skip_button.config(state=tk.NORMAL)
         self.next_button.config(state=tk.NORMAL)
         self.replay_button.config(state=tk.NORMAL)
-
-    def open_rec_output_folder(self):
-        """ opens the folder with the recordings """
-        rec_path = os.path.join(self.output_folder, 'recordings')
-        if not os.path.exists(rec_path):
-            os.makedirs(rec_path)
-        webbrowser.open(rec_path)
+        self.status_label['text'] = 'Replaying done, waiting for save...'
 
     def save_audio(self):
         """ saves the audio in the file system """
-        rec_path = os.path.join(self.output_folder, 'recordings')
+        rec_path = os.path.join(self.output_folder, RECORDINGS_OUTPUT_FOLDER)
         if not os.path.exists(rec_path):
             os.makedirs(rec_path)
 
@@ -289,10 +364,12 @@ class AudioRecorder:
         counter = 0
         while os.path.exists(output_path):
             output_path = os.path.join(self.output_folder,
+                                       RECORDINGS_OUTPUT_FOLDER,
                                        self.filename[0]
                                        .replace('/', '') +
                                        f'({counter})'+".wav")
             counter += 1
+
         wave_file = wave.open(output_path, 'wb')
         wave_file.setnchannels(self.channels)
         wave_file.setsampwidth(self.audio.get_sample_size(self.format))
@@ -315,6 +392,15 @@ class AudioRecorder:
                                      "Do you really want to exit?")
         if result:
             self.root.quit()
+
+    def open_rec_output_folder(self):
+        """ Opens the folder with the recordings in the file explorer. """
+        rec_path = os.path.abspath(os.path.join(
+            # self.output_folder, RECORDINGS_OUTPUT_FOLDER))
+            self.output_folder, ''))
+        if not os.path.exists(rec_path):
+            os.makedirs(rec_path)
+        subprocess.Popen(['explorer', rec_path])
 
 
 if __name__ == "__main__":

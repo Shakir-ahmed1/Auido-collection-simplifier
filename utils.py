@@ -5,7 +5,6 @@ from typing import List
 import os
 from random import shuffle
 
-
 DICITIONARY_CSV_FILENAME = 'dictionary.csv'
 OUTPUT_DATASET_FILENAME = 'data.csv'
 INDEX = 0
@@ -59,4 +58,4 @@ def dataset_count(filename: str) -> int:
         reader_obj = csv.reader(file_obj)
         for row in reader_obj:
             datas.append(row)
-    return f'total words: {len(datas)}'
+    return f'total words: {len(datas) - 1}'
