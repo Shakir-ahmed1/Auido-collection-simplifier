@@ -4,6 +4,9 @@ import csv
 from typing import List
 import os
 from random import shuffle
+import os
+from win32com.client import Dispatch
+
 
 DICITIONARY_CSV_FILENAME = 'dictionary.csv'
 OUTPUT_DATASET_FILENAME = 'data.csv'
@@ -12,7 +15,7 @@ WORDS = [
     ('እሱ', 'he'),
     ('ኣለዎ', 'has'),
     ('ወርቂ', 'gold'),
-    ('ይሰርሕ', 'does'),
+    ('ስራሕ', 'work'),
 ]
 CSV_HEADERS = ["Tigrigna", "English", "file_name"]
 
@@ -59,3 +62,17 @@ def dataset_count(filename: str) -> int:
         for row in reader_obj:
             datas.append(row)
     return f'total words: {len(datas) - 1}'
+
+
+def create_shortcut(target_path, shortcut_name):
+    print(shortcut_name, target_path)
+    desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+    shortcut_path = os.path.join(desktop_path, shortcut_name + '.lnk')
+
+    if not os.path.exists(shortcut_path):
+        shell = Dispatch('WScript.Shell')
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.TargetPath = os.path.abspath(target_path)
+        shortcut.WorkingDirectory = os.path.dirname(
+            os.path.abspath(target_path))
+        shortcut.save()

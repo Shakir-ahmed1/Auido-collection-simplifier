@@ -3,9 +3,7 @@
     it can be used to any other language. the data is taken
     from the WORDS list by modifiying it, it can be applied to any
     language
-
 """
-# adding hyperlink widget for developer account,
 from datetime import datetime
 import pyaudio
 import wave
@@ -20,10 +18,11 @@ import numpy as np
 from time import sleep
 import webbrowser
 from tkinter import filedialog
-from utils import word_generator, update_csv, dataset_count
+from utils import word_generator, update_csv, dataset_count, create_shortcut
 from utils import OUTPUT_DATASET_FILENAME
 import subprocess
 from pathlib import Path
+import sys
 
 RECORDINGS_OUTPUT_FOLDER = 'recordings'
 
@@ -44,7 +43,7 @@ class HyperLinkLabel(tk.Label):
         self.bind('<Enter>', self.on_enter)
         self.bind('<Leave>', self.on_leave)
         self.__defalut_font = None
-        if kwargs.get('font') == None:
+        if kwargs.get('font') is None:
             self.config(font=("", 9))
         self.__font = ["", 9]
         if font_size:
@@ -87,7 +86,7 @@ class AudioRecorder:
         self.root = tk.Tk()
         self.root.title("Audio Recorder")
         self.images = {
-            'github': tk.PhotoImage(file=Path('github-logo.png')),
+            'telegram': tk.PhotoImage(file=Path('telegram-icon.png')),
         }
         # buttons
         self.buttons_canvas = tk.Frame()
@@ -146,15 +145,18 @@ class AudioRecorder:
         self.rec_location_btn.pack(pady=5, padx=50, anchor='e')
         self.author_frame = tk.Frame(self.root)
         self.author_frame.pack(fill='x', side='right', padx=30)
-        self.github_icon = tk.Label(
-            self.author_frame, image=self.images['github'])
-        self.github_icon.pack(side='left', anchor='e')
+        self.telegram_icon = tk.Label(
+            self.author_frame, image=self.images['telegram'])
+        self.telegram_icon.pack(side='left', anchor='e')
         self.developer = HyperLinkLabel(
-            self.author_frame, link='https://github.com/Shakir-ahmed1', text="Shakir Ahmedsalih", fg='blue')
+            self.author_frame, link='https://t.me/shkahm1',
+            text="Shakir Ahmedsalih", fg='blue')
         self.developer.pack(pady=10, padx=5, anchor='e')
 
         dialog_title = 'select the output folder for the datataset'
         self.output_folder = 'dataset'
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
         # self.output_folder = filedialog.askdirectory(title=dialog_title)
         # self.root.focus_force()
 
@@ -404,5 +406,6 @@ class AudioRecorder:
 
 
 if __name__ == "__main__":
+    create_shortcut(sys.argv[0], 'Audio recorder')
     recorder = AudioRecorder()
     recorder.run()
