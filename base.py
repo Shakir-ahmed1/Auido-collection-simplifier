@@ -10,14 +10,13 @@ import wave
 import os
 import threading
 import tkinter as tk
-from tkinter import messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 from time import sleep
 import webbrowser
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from utils import word_generator, update_csv, dataset_count, create_shortcut
 from utils import OUTPUT_DATASET_FILENAME
 import subprocess
@@ -33,37 +32,37 @@ def is_date_after_2025():
     return current_year >= 2025
 
 
-class HyperLinkLabel(tk.Label):
-    """ a clickable label that opens a website"""
+# class HyperLinkLabel(tk.Label):
+#     """ a clickable label that opens a website"""
 
-    def __init__(self, *args, link='', font_size=None, font_style=None, **kwargs):
-        """ Initailzation """
-        super().__init__(*args, ** kwargs)
-        self.bind("<Button-1>", self.open_link)
-        self.bind('<Enter>', self.on_enter)
-        self.bind('<Leave>', self.on_leave)
-        self.__defalut_font = None
-        if kwargs.get('font') is None:
-            self.config(font=("", 9))
-        self.__font = ["", 9]
-        if font_size:
-            self.__font[1] = font_size
-        if font_style:
-            self.__font[0] = font_style
-        self.__link = link
+#     def __init__(self, *args, link='', font_size=None, font_style=None, **kwargs):
+#         """ Initailzation """
+#         super().__init__(*args, ** kwargs)
+#         self.bind("<Button-1>", self.open_link)
+#         self.bind('<Enter>', self.on_enter)
+#         self.bind('<Leave>', self.on_leave)
+#         self.__defalut_font = None
+#         if kwargs.get('font') is None:
+#             self.config(font=("", 9))
+#         self.__font = ["", 9]
+#         if font_size:
+#             self.__font[1] = font_size
+#         if font_style:
+#             self.__font[0] = font_style
+#         self.__link = link
 
-    def on_enter(self, event):
-        """ excuted when the mouse cursor hovers over the hyperlink """
-        self.config(font=(*self.__font, 'underline'))
+#     def on_enter(self, event):
+#         """ excuted when the mouse cursor hovers over the hyperlink """
+#         self.config(font=(*self.__font, 'underline'))
 
-    def on_leave(self, event):
-        """ excuted when the mouse cursor leaves the hyperlink"""
-        self.config(font=self.__font)
+#     def on_leave(self, event):
+#         """ excuted when the mouse cursor leaves the hyperlink"""
+#         self.config(font=self.__font)
 
-    def open_link(self, event):
-        """ opens the link in a browser when clicked """
-        if self.link:
-            webbrowser.open(self.link)
+#     def open_link(self, event):
+#         """ opens the link in a browser when clicked """
+#         if self.__link:
+#             webbrowser.open(self.__link)
 
 
 class AudioRecorder:
@@ -85,9 +84,9 @@ class AudioRecorder:
 
         self.root = tk.Tk()
         self.root.title("Audio Recorder")
-        self.images = {
-            'telegram': tk.PhotoImage(file=Path('telegram-icon.png')),
-        }
+        # self.images = {
+        #     'telegram': tk.PhotoImage(file=Path('telegram-icon.png')),
+        # }
         # buttons
         self.buttons_canvas = tk.Frame()
         self.start_button = tk.Button(self.buttons_canvas, text="⏺️ Start Recording (1)",
@@ -143,15 +142,15 @@ class AudioRecorder:
                                           text='open recordings folder',
                                           command=self.open_rec_output_folder)
         self.rec_location_btn.pack(pady=5, padx=50, anchor='e')
-        self.author_frame = tk.Frame(self.root)
-        self.author_frame.pack(fill='x', side='right', padx=30)
-        self.telegram_icon = tk.Label(
-            self.author_frame, image=self.images['telegram'])
-        self.telegram_icon.pack(side='left', anchor='e')
-        self.developer = HyperLinkLabel(
-            self.author_frame, link='https://t.me/shkahm1',
-            text="Shakir Ahmedsalih", fg='blue')
-        self.developer.pack(pady=10, padx=5, anchor='e')
+        # self.author_frame = tk.Frame(self.root)
+        # self.author_frame.pack(fill='x', side='right', padx=30)
+        # self.telegram_icon = tk.Label(
+        #     self.author_frame, image=self.images['telegram'])
+        # self.telegram_icon.pack(side='left', anchor='e')
+        # self.developer = HyperLinkLabel(
+        #     self.author_frame, link='https://t.me/shkahm1',
+        #     text="Shakir Ahmedsalih", fg='blue')
+        # self.developer.pack(pady=10, padx=5, anchor='e')
 
         dialog_title = 'select the output folder for the datataset'
         self.output_folder = 'dataset'
@@ -165,7 +164,6 @@ class AudioRecorder:
                                                 os.path.join(self.output_folder,
                                                              OUTPUT_DATASET_FILENAME)))
         self.dataset_count_lable.grid(column=2, row=2, padx=30, sticky='w')
-
         # shortcuts keys for the buttons
         self.root.bind('1', lambda x: self.start_recording())
         self.root.bind('2', lambda x: self.stop_recording())
@@ -176,7 +174,6 @@ class AudioRecorder:
         self.root.bind('7', lambda x: self.open_rec_output_folder())
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-
         if is_date_after_2025():
             self.start_button.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.DISABLED)
@@ -260,9 +257,10 @@ class AudioRecorder:
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
         self.definition_label['text'] = self.filename[1]
-        self.dataset_count_lable['text'] = dataset_count(
+        total_rows = dataset_count(
             os.path.join(self.output_folder,
                          OUTPUT_DATASET_FILENAME))
+        self.dataset_count_lable['text'] = total_rows
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
         self.status_label['text'] = 'Audio saved succesfully ✔️'
@@ -361,6 +359,8 @@ class AudioRecorder:
         if not os.path.exists(rec_path):
             os.makedirs(rec_path)
 
+        if self.filename[0].replace('/', '') == 'Null':
+            return
         output_path = os.path.join(rec_path,
                                    self.filename[0].replace('/', '') + ".wav")
         counter = 0
