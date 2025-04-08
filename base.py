@@ -29,7 +29,7 @@ RECORDINGS_OUTPUT_FOLDER = 'recordings'
 def is_date_after_2025():
     """Checks if the current date is after 2025."""
     current_year = datetime.now().year
-    return current_year >= 2025
+    return current_year >= 2026
 
 
 # class HyperLinkLabel(tk.Label):
@@ -116,7 +116,7 @@ class AudioRecorder:
                                    font=("Helvetica", 20))
         self.word_label.grid(column=2, row=0, rowspan=1, padx=30, sticky='w')
         self.definition_label = tk.Label(
-            self.buttons_canvas, text=self.filename[1])
+            self.buttons_canvas, text=self.filename[-1])
         self.definition_label.grid(column=2, row=1, padx=30, sticky='w')
 
         self.buttons_canvas.pack(pady=10, padx=50, side='top', anchor='w')
@@ -158,11 +158,10 @@ class AudioRecorder:
             os.makedirs(self.output_folder)
         # self.output_folder = filedialog.askdirectory(title=dialog_title)
         # self.root.focus_force()
-
+        counted = dataset_count(os.path.join(self.output_folder,
+                                             OUTPUT_DATASET_FILENAME))
         self.dataset_count_lable = tk.Label(self.buttons_canvas,
-                                            text=dataset_count(
-                                                os.path.join(self.output_folder,
-                                                             OUTPUT_DATASET_FILENAME)))
+                                            text=f'total words: {counted}')
         self.dataset_count_lable.grid(column=2, row=2, padx=30, sticky='w')
         # shortcuts keys for the buttons
         self.root.bind('1', lambda x: self.start_recording())
@@ -257,9 +256,10 @@ class AudioRecorder:
         self.filename = word_generator()
         self.word_label['text'] = self.filename[0]
         self.definition_label['text'] = self.filename[1]
-        total_rows = dataset_count(
+        counted = dataset_count(
             os.path.join(self.output_folder,
                          OUTPUT_DATASET_FILENAME))
+        total_rows = f'total words: {counted}'
         self.dataset_count_lable['text'] = total_rows
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
@@ -355,6 +355,8 @@ class AudioRecorder:
 
     def save_audio(self):
         """ saves the audio in the file system """
+        counted = dataset_count(os.path.join(self.output_folder,
+                                             OUTPUT_DATASET_FILENAME)) + 1
         rec_path = os.path.join(self.output_folder, RECORDINGS_OUTPUT_FOLDER)
         if not os.path.exists(rec_path):
             os.makedirs(rec_path)
@@ -362,15 +364,15 @@ class AudioRecorder:
         if self.filename[0].replace('/', '') == 'Null':
             return
         output_path = os.path.join(rec_path,
-                                   self.filename[0].replace('/', '') + ".wav")
-        counter = 0
-        while os.path.exists(output_path):
-            output_path = os.path.join(self.output_folder,
-                                       RECORDINGS_OUTPUT_FOLDER,
-                                       self.filename[0]
-                                       .replace('/', '') +
-                                       f'({counter})'+".wav")
-            counter += 1
+                                   str(counted) + ".wav")
+        # counter = 0
+        # while os.path.exists(output_path):
+        #     output_path = os.path.join(self.output_folder,
+        #                                RECORDINGS_OUTPUT_FOLDER,
+        #                                self.filename[0]
+        #                                .replace('/', '') +
+        #                                f'({counter})'+".wav")
+        #     counter += 1
 
         wave_file = wave.open(output_path, 'wb')
         wave_file.setnchannels(self.channels)
@@ -378,9 +380,11 @@ class AudioRecorder:
         wave_file.setframerate(self.rate)
         wave_file.writeframes(b''.join(self.frames))
         wave_file.close()
-        update_csv(os.path.join(self.output_folder, OUTPUT_DATASET_FILENAME), [self.filename[0],
-                   self.filename[1], output_path.lstrip(self.output_folder)
-                                                .lstrip('/').lstrip(r"\\")])
+
+        update_csv(os.path.join(self.output_folder, OUTPUT_DATASET_FILENAME), [str(counted), self.filename[0],
+                   self.filename[1]])
+        #  output_path.lstrip(self.output_folder)
+        #                             .lstrip('/').lstrip(r"\\")])
 
     def run(self):
         """ runs the tkinter """
