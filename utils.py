@@ -1,49 +1,40 @@
 #!/usr/bin/env python3
 """ Holds utils that are used by the app """
-import csv
-from typing import List
 import os
+from typing import List
 from random import shuffle
 from win32com.client import Dispatch
 from cryptography.fernet import Fernet
+import xlrd
+import xlwt
 
-DICITIONARY_CSV_FILENAME = 'dictionary.csv'
-OUTPUT_DATASET_FILENAME = 'data.csv'
-numbers = b'R7FhWrWdE6fenQ8aucOyYCZSAHD_oK7gsVkLvFw1WFo='
-
-
-# def decrypt_file(key, encrypted_filename):
-#     """ decryptes an encrypted file using the given key and returns string"""
-#     with open(encrypted_filename, 'rb') as f:
-#         encrypted_data = f.read()
-#     fernet = Fernet(key)
-#     decrypted_data = fernet.decrypt(encrypted_data)
-#     return ''.join(decrypted_data.decode('utf-8')).strip()
+DICITIONARY_CSV_FILENAME = 'dictionary.xls'
+OUTPUT_DATASET_FILENAME = 'data.xls'
 
 
-def csv_to_list(decrypted_csv):
+def csv_to_list(decrypted_xls):
     """ converts a list """
-    # all_words = [d.split(',') for d in decrypted_csv.split('\r\n')]
-    all_words = csv.reader(decrypted_csv, quotechar='"',
-                           delimiter=',', escapechar='\\')
+    wb = xlrd.open_workbook(file_contents=decrypted_xls)
+    sheet = wb.sheet_by_index(0)
     rw = []
-    for row in all_words:
+    for row_idx in range(sheet.nrows):
+        row = sheet.row_values(row_idx)
         print('=', row)
         rw.append(row)
     return rw
 
 
 def word_exists(word):
-    if os.path.exists('dataset/data.csv'):
-        with open('dataset/data.csv', encoding='utf-8-sig') as file:
-            content = csv.reader(file)
-            counter = 0
-            for b in content:
-                if b[1] == word:
-                    return True
-                counter += 1
-            if counter >= 600:
+    if os.path.exists('dataset/data.xls'):
+        wb = xlrd.open_workbook('dataset/data.xls')
+        sheet = wb.sheet_by_index(0)
+        counter = 0
+        for row_idx in range(1, sheet.nrows):
+            if sheet.cell_value(row_idx, 1) == word:
                 return True
+            counter += 1
+        if counter >= 600:
+            return True
     return False
 
 
@@ -58,10 +49,10 @@ CSV_HEADERS = ["ID", "Tigrigna", "English"]
 
 if os.path.exists(DICITIONARY_CSV_FILENAME):
     WORDS = []
-    with open(DICITIONARY_CSV_FILENAME, 'r', encoding='utf-8-sig') as file_obj:
-        reader_obj = csv.reader(file_obj)
-        for row in reader_obj:
-            WORDS.append(row)
+    wb = xlrd.open_workbook(DICITIONARY_CSV_FILENAME)
+    sheet = wb.sheet_by_index(0)
+    for row_idx in range(sheet.nrows):
+        WORDS.append(sheet.row_values(row_idx))
     shuffle(WORDS)
 
 
@@ -80,34 +71,45 @@ def word_generator() -> List[str]:
 
 
 def create_csv(filename: str, headers: List[str]):
-    """ creates a csv file with the given headers """
-    with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
-        writer = csv.writer(file)
-        writer.writerow(headers)
+    """ creates a xls file with the given headers """
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet("Sheet1")
+    for i, header in enumerate(headers):
+        ws.write(0, i, header)
+    wb.save(filename)
 
 
 def update_csv(filename: str, data: List[str]):
-    """ appends a new row to a csv file"""
+    """ appends a new row to an xls file"""
     if data and data[0] == 'Null':
         return
+
     if not os.path.exists(filename):
         create_csv(filename, CSV_HEADERS)
-    with open(filename, mode='a', newline='', encoding='utf-8-sig') as file:
-        writer = csv.writer(file)
-        data = list(data)
-        writer.writerow(data)
+
+    wb = xlrd.open_workbook(filename, formatting_info=True)
+    sheet = wb.sheet_by_index(0)
+    rows = [sheet.row_values(i) for i in range(sheet.nrows)]
+
+    rows.append(data)
+
+    # Rewrite everything
+    new_wb = xlwt.Workbook()
+    new_ws = new_wb.add_sheet("Sheet1")
+    for row_idx, row in enumerate(rows):
+        for col_idx, cell in enumerate(row):
+            new_ws.write(row_idx, col_idx, cell)
+    new_wb.save(filename)
 
 
 def dataset_count(filename: str) -> int:
-    """ counts how many datasets are in a csv file"""
-    datas = []
+    """ counts how many datasets are in an xls file"""
     if not os.path.exists(filename):
         create_csv(filename, CSV_HEADERS)
-    with open(filename, 'r', encoding='utf-8-sig') as file_obj:
-        reader_obj = csv.reader(file_obj)
-        for row in reader_obj:
-            datas.append(row)
-    return len(datas) - 1
+
+    wb = xlrd.open_workbook(filename)
+    sheet = wb.sheet_by_index(0)
+    return sheet.nrows - 1
 
 
 def create_shortcut(target_path, shortcut_name):
