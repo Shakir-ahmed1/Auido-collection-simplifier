@@ -7,6 +7,7 @@ from win32com.client import Dispatch
 from cryptography.fernet import Fernet
 import xlrd
 import xlwt
+import csv
 
 DICITIONARY_CSV_FILENAME = 'dictionary.xls'
 OUTPUT_DATASET_FILENAME = 'data.xls'
@@ -124,3 +125,19 @@ def create_shortcut(target_path, shortcut_name):
         shortcut.WorkingDirectory = os.path.dirname(
             os.path.abspath(target_path))
         shortcut.save()
+
+
+def convert_xls_to_csv(xls_filename: str, csv_filename: str):
+    """ Converts .xls file to .csv with utf-8-sig encoding """
+    if not os.path.exists(xls_filename):
+        print(f"File not found: {xls_filename}")
+        return
+
+    wb = xlrd.open_workbook(xls_filename)
+    sheet = wb.sheet_by_index(0)
+
+    with open(csv_filename, mode='w', newline='', encoding='utf-8-sig') as csv_file:
+        writer = csv.writer(csv_file)
+        for row_idx in range(sheet.nrows):
+            row = sheet.row_values(row_idx)
+            writer.writerow(row)
