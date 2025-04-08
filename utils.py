@@ -7,33 +7,39 @@ from random import shuffle
 from win32com.client import Dispatch
 from cryptography.fernet import Fernet
 
-DICITIONARY_CSV_FILENAME = '_exlib.dsd'
+DICITIONARY_CSV_FILENAME = 'dictionary.csv'
 OUTPUT_DATASET_FILENAME = 'data.csv'
 numbers = b'R7FhWrWdE6fenQ8aucOyYCZSAHD_oK7gsVkLvFw1WFo='
 
 
-def decrypt_file(key, encrypted_filename):
-    """ decryptes an encrypted file using the given key and returns string"""
-    with open(encrypted_filename, 'rb') as f:
-        encrypted_data = f.read()
-    fernet = Fernet(key)
-    decrypted_data = fernet.decrypt(encrypted_data)
-    return ''.join(decrypted_data.decode('utf-8')).strip()
+# def decrypt_file(key, encrypted_filename):
+#     """ decryptes an encrypted file using the given key and returns string"""
+#     with open(encrypted_filename, 'rb') as f:
+#         encrypted_data = f.read()
+#     fernet = Fernet(key)
+#     decrypted_data = fernet.decrypt(encrypted_data)
+#     return ''.join(decrypted_data.decode('utf-8')).strip()
 
 
 def csv_to_list(decrypted_csv):
     """ converts a list """
-    all_words = [d.split('#') for d in decrypted_csv.split('\r\n')]
-    return all_words
+    # all_words = [d.split(',') for d in decrypted_csv.split('\r\n')]
+    all_words = csv.reader(decrypted_csv, quotechar='"',
+                           delimiter=',', escapechar='\\')
+    rw = []
+    for row in all_words:
+        print('=', row)
+        rw.append(row)
+    return rw
 
 
 def word_exists(word):
     if os.path.exists('dataset/data.csv'):
-        with open('dataset/data.csv', encoding='utf-8') as file:
+        with open('dataset/data.csv', encoding='utf-8-sig') as file:
             content = csv.reader(file)
             counter = 0
             for b in content:
-                if b[0] == word:
+                if b[1] == word:
                     return True
                 counter += 1
             if counter >= 600:
@@ -48,12 +54,14 @@ WORDS = [
     ('ወርቂ', 'gold'),
     ('ስራሕ', 'work'),
 ]
-CSV_HEADERS = ["Tigrigna", "English", "file_name"]
+CSV_HEADERS = ["ID", "Tigrigna", "English"]
 
 if os.path.exists(DICITIONARY_CSV_FILENAME):
     WORDS = []
-    decrypted_string = decrypt_file(numbers, DICITIONARY_CSV_FILENAME)
-    WORDS = csv_to_list(decrypted_string)
+    with open(DICITIONARY_CSV_FILENAME, 'r', encoding='utf-8-sig') as file_obj:
+        reader_obj = csv.reader(file_obj)
+        for row in reader_obj:
+            WORDS.append(row)
     shuffle(WORDS)
 
 
@@ -73,7 +81,7 @@ def word_generator() -> List[str]:
 
 def create_csv(filename: str, headers: List[str]):
     """ creates a csv file with the given headers """
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+    with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
@@ -84,7 +92,7 @@ def update_csv(filename: str, data: List[str]):
         return
     if not os.path.exists(filename):
         create_csv(filename, CSV_HEADERS)
-    with open(filename, mode='a', newline='', encoding='utf-8') as file:
+    with open(filename, mode='a', newline='', encoding='utf-8-sig') as file:
         writer = csv.writer(file)
         data = list(data)
         writer.writerow(data)
@@ -95,7 +103,7 @@ def dataset_count(filename: str) -> int:
     datas = []
     if not os.path.exists(filename):
         create_csv(filename, CSV_HEADERS)
-    with open(filename, 'r', encoding='utf-8') as file_obj:
+    with open(filename, 'r', encoding='utf-8-sig') as file_obj:
         reader_obj = csv.reader(file_obj)
         for row in reader_obj:
             datas.append(row)
