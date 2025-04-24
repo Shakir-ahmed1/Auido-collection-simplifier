@@ -11,6 +11,7 @@ import csv
 
 DICITIONARY_CSV_FILENAME = 'dictionary.xls'
 OUTPUT_DATASET_FILENAME = 'data.xls'
+DURATION_COLUMN_NUMBER = 3
 
 
 def csv_to_list(decrypted_xls):
@@ -25,28 +26,47 @@ def csv_to_list(decrypted_xls):
     return rw
 
 
-def word_exists(word):
-    if os.path.exists('dataset/data.xls'):
-        wb = xlrd.open_workbook('dataset/data.xls')
-        sheet = wb.sheet_by_index(0)
-        counter = 0
-        for row_idx in range(1, sheet.nrows):
-            if sheet.cell_value(row_idx, 1) == word:
-                return True
-            counter += 1
-        if counter >= 600:
-            return True
-    return False
+# def word_exists(word):
+#     if os.path.exists('dataset/data.xls'):
+#         wb = xlrd.open_workbook('dataset/data.xls')
+#         sheet = wb.sheet_by_index(0)
+#         counter = 0
+#         for row_idx in range(1, sheet.nrows):
+#             if sheet.cell_value(row_idx, 1) == word:
+#                 return True
+#             counter += 1
+#         if counter >= 600:
+#             return True
+#     return False
 
 
-INDEX = 0
+def get_next_id():
+    """Returns the index in WORDS where the last recorded word ID is found, or -1 if not found."""
+    path = 'dataset/data.xls'
+    if not os.path.exists(path):
+        return -1
+
+    wb = xlrd.open_workbook(path)
+    sheet = wb.sheet_by_index(0)
+    if sheet.nrows <= 1:
+        return -1  # No data rows yet
+
+    # Get the last row's ID (assuming it's in the first column)
+    last_row_id = str(sheet.cell_value(sheet.nrows - 1, 1)).strip()
+
+    label, id = last_row_id.split('_')
+    new_id = f"{label}_{(int(id) + 1):09}"
+    return new_id
+
+
 WORDS = [
     ('እሱ', 'he'),
-    ('ኣለዎ', 'has'),
+    ('ኣለዎ ', 'ሓድሽ ወተሃደራዊ እዚ እቶም ኣብ መግለጺ መንግስቲ ክልል ትግራይ ርእይቶኦም ክህቡ ዝተሓተቱ ነባራት ወተሃደራዊ ኪኢላታት ኣብቲ ናይ መንነነት ሕቶ ዝለዓለሉ ከባቢ ወልቃይት ዝሕቆፍ ሰሜን ምዕራብ ዝተሰምየ ሓድሽ ወተሃደራዊ እዚ ምጥያስ፡ ነቲ ክልል ትግራይ ምስ ሱዳን ዘራኽባ ዶብ ንምዕጻውን ምስ ሓይልታት ደገ ቀጥታዊ ርክብ ንምግባርን ክኸውን ከም ዝኽእል ይዛረቡ።'),
     ('ወርቂ', 'gold'),
     ('ስራሕ', 'work'),
 ]
-CSV_HEADERS = ["ID", "Tigrigna", "English"]
+# CSV_HEADERS = ["ID", "Tigrigna", "English"]
+CSV_HEADERS = ['id', 'text', 'path', 'duration', 'voice_name']
 
 if os.path.exists(DICITIONARY_CSV_FILENAME):
     WORDS = []
@@ -58,20 +78,23 @@ if os.path.exists(DICITIONARY_CSV_FILENAME):
 
 
 def word_generator() -> List[str]:
-    """ generates word for the user to read"""
-    global INDEX
-    INDEX += 1
-    len_word = len(WORDS)
-    while INDEX < len_word and word_exists(WORDS[INDEX][0]):
-        INDEX += 1
-        if INDEX >= len_word:
-            return ['Null', 'Null']
-    if INDEX >= len_word:
+    """ generates word for the user to read
+
+    checks the last row's id
+    adds 1
+    returns the word using the add index
+
+
+    """
+    new_id = get_next_id()
+    print("Word generator", WORDS)
+    found_word = next((el for el in WORDS if el[0] == new_id), None)
+    if not found_word:
         return ['Null', 'Null']
-    return WORDS[INDEX]
+    return found_word
 
 
-def create_csv(filename: str, headers: List[str]):
+def create_xls(filename: str, headers: List[str]):
     """ creates a xls file with the given headers """
     wb = xlwt.Workbook()
     ws = wb.add_sheet("Sheet1")
@@ -80,13 +103,13 @@ def create_csv(filename: str, headers: List[str]):
     wb.save(filename)
 
 
-def update_csv(filename: str, data: List[str]):
+def update_xls(filename: str, data: List[str]):
     """ appends a new row to an xls file"""
     if data and data[0] == 'Null':
         return
 
     if not os.path.exists(filename):
-        create_csv(filename, CSV_HEADERS)
+        create_xls(filename, CSV_HEADERS)
 
     wb = xlrd.open_workbook(filename, formatting_info=True)
     sheet = wb.sheet_by_index(0)
@@ -106,11 +129,30 @@ def update_csv(filename: str, data: List[str]):
 def dataset_count(filename: str) -> int:
     """ counts how many datasets are in an xls file"""
     if not os.path.exists(filename):
-        create_csv(filename, CSV_HEADERS)
+        create_xls(filename, CSV_HEADERS)
 
     wb = xlrd.open_workbook(filename)
     sheet = wb.sheet_by_index(0)
     return sheet.nrows - 1
+
+
+def dataset_total_duration(filename: str) -> float:
+    """Sums all values in column 3 (index 2) of the dataset file."""
+    if not os.path.exists(filename):
+        create_xls(filename, CSV_HEADERS)
+
+    wb = xlrd.open_workbook(filename)
+    sheet = wb.sheet_by_index(0)
+
+    total = 0.0
+    for row_idx in range(1, sheet.nrows):  # Skip header row
+        try:
+            value = float(sheet.cell_value(row_idx, DURATION_COLUMN_NUMBER))
+            total += value
+        except ValueError:
+            continue  # skip rows where value isn't a number
+
+    return total
 
 
 def create_shortcut(target_path, shortcut_name):
@@ -141,3 +183,11 @@ def convert_xls_to_csv(xls_filename: str, csv_filename: str):
         for row_idx in range(sheet.nrows):
             row = sheet.row_values(row_idx)
             writer.writerow(row)
+
+
+def time_displayer(seconds):
+    """Returns a duration in HH:MM:SS format."""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02}:{minutes:02}:{secs:02}"
