@@ -22,9 +22,19 @@ from utils import OUTPUT_DATASET_FILENAME
 import subprocess
 from pathlib import Path
 import sys
+from config import student_id
 
 RECORDINGS_OUTPUT_FOLDER = 'recordings'
 
+names_mapper = {
+    198: 'Shakir',
+    271: 'Yowhans',
+    50: 'Daniel',
+    235: 'Yared',
+    267: 'Esrael',
+    254: 'Teamr',
+    173: 'Mulat'
+}
 
 def is_date_after_2025():
     """Checks if the current date is after 2025."""
@@ -81,7 +91,7 @@ class AudioRecorder:
         self.stop_reply_button.grid(column=1, row=2, padx=3, pady=3)
 
         # lable - text being recorded
-        self.word_label = tk.Label(self.buttons_canvas, text=self.filename[0],
+        self.word_label = tk.Label(self.buttons_canvas, text=names_mapper[student_id] + " => " + self.filename[0],
                                    font=("Helvetica", 20))
         self.word_label.grid(column=2, row=0, rowspan=1, padx=30, sticky='w')
         # self.definition_label = tk.Label(
@@ -229,7 +239,7 @@ class AudioRecorder:
             return
         self.save_audio()
         self.filename = word_generator()
-        self.word_label['text'] = self.filename[0]
+        self.word_label['text'] = names_mapper[student_id] + " => " + self.filename[0]
         self.definition_label['text'] = self.filename[1]
         total_duration = dataset_total_duration(
             os.path.join(self.output_folder,
@@ -246,7 +256,7 @@ class AudioRecorder:
         if self.skip_button['state'] == tk.DISABLED:
             return
         self.filename = word_generator()
-        self.word_label['text'] = self.filename[0]
+        self.word_label['text'] = names_mapper[student_id] + " => " +self.filename[0]
         self.definition_label['text'] = self.filename[1]
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
@@ -330,8 +340,6 @@ class AudioRecorder:
 
     def save_audio(self):
         """ saves the audio in the file system """
-        counted = dataset_count(os.path.join(self.output_folder,
-                                             OUTPUT_DATASET_FILENAME)) + 1
         rec_path = os.path.join(self.output_folder, RECORDINGS_OUTPUT_FOLDER)
         if not os.path.exists(rec_path):
             os.makedirs(rec_path)
@@ -339,7 +347,7 @@ class AudioRecorder:
         if self.filename[0].replace('/', '') == 'Null':
             return
         output_path = os.path.join(rec_path,
-                                   str(counted) + ".wav")
+                                   self.filename[0] + ".wav")
 
         wave_file = wave.open(output_path, 'wb')
         wave_file.setnchannels(self.channels)
