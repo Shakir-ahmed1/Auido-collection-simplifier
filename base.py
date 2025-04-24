@@ -17,20 +17,29 @@ import numpy as np
 from time import sleep
 import webbrowser
 from tkinter import filedialog, messagebox
-from utils import word_generator, update_csv, dataset_count, create_shortcut
+from utils import time_displayer, word_generator, update_xls, dataset_count, create_shortcut, dataset_total_duration
 from utils import OUTPUT_DATASET_FILENAME
 import subprocess
 from pathlib import Path
 import sys
+from config import student_id
 
 RECORDINGS_OUTPUT_FOLDER = 'recordings'
 
+names_mapper = {
+    198: 'Shakir',
+    271: 'Yowhans',
+    50: 'Daniel',
+    235: 'Yared',
+    267: 'Esrael',
+    254: 'Teamr',
+    173: 'Mulat'
+}
 
 def is_date_after_2025():
     """Checks if the current date is after 2025."""
     current_year = datetime.now().year
-    return current_year >= 2026
-
+    return current_year >= 2100
 
 
 class AudioRecorder:
@@ -38,6 +47,7 @@ class AudioRecorder:
 
     def __init__(self):
         """ Initialization """
+        self.voice_name = 198
         self.filename = word_generator()
         self.duration = 5
         self.chunk = 1024
@@ -51,6 +61,7 @@ class AudioRecorder:
         self.frames = []
 
         self.root = tk.Tk()
+        self.root.geometry("1200x400")
         self.root.title("Audio Recorder")
         # self.images = {
         #     'telegram': tk.PhotoImage(file=Path('telegram-icon.png')),
@@ -80,12 +91,26 @@ class AudioRecorder:
         self.stop_reply_button.grid(column=1, row=2, padx=3, pady=3)
 
         # lable - text being recorded
-        self.word_label = tk.Label(self.buttons_canvas, text=self.filename[0],
+        self.word_label = tk.Label(self.buttons_canvas, text=names_mapper[student_id] + " => " + self.filename[0],
                                    font=("Helvetica", 20))
         self.word_label.grid(column=2, row=0, rowspan=1, padx=30, sticky='w')
+        # self.definition_label = tk.Label(
+        #     self.buttons_canvas, text=self.filename[-1])
+        # self.definition_label.grid(column=2, row=1, padx=30, sticky='w')
         self.definition_label = tk.Label(
-            self.buttons_canvas, text=self.filename[-1])
-        self.definition_label.grid(column=2, row=1, padx=30, sticky='w')
+            self.buttons_canvas,
+            text=self.filename[-1],
+            wraplength=700,  # Allow wrapping at around 700 pixels
+            justify='left',  # Align text to the left
+            anchor='w',      # Align text inside the label
+            # Approximate width in characters (adjust as needed)
+            width=90,
+
+            font=("Helvetica", 16)
+        )
+
+        self.definition_label.grid(
+            column=2, row=1, padx=30, sticky='w', rowspan=3)
 
         self.buttons_canvas.pack(pady=10, padx=50, side='top', anchor='w')
 
@@ -98,7 +123,7 @@ class AudioRecorder:
         self.ax.yaxis.set_visible(False)
         self.ax.set_title('')
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().config(height=200)
+        self.canvas.get_tk_widget().config(width=1800, height=200)
         self.canvas.get_tk_widget().pack()
 
         # lable - to display current status of the recorder
@@ -111,17 +136,18 @@ class AudioRecorder:
                                           command=self.open_rec_output_folder)
         self.rec_location_btn.pack(pady=5, padx=50, anchor='e')
 
-        dialog_title = 'select the output folder for the datataset'
+        dialog_title = 'select the output folder for the data set'
         self.output_folder = 'dataset'
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
         # self.output_folder = filedialog.askdirectory(title=dialog_title)
         # self.root.focus_force()
-        counted = dataset_count(os.path.join(self.output_folder,
-                                             OUTPUT_DATASET_FILENAME))
+        total_duration = dataset_total_duration(os.path.join(self.output_folder,
+                                                             OUTPUT_DATASET_FILENAME))
         self.dataset_count_lable = tk.Label(self.buttons_canvas,
-                                            text=f'total words: {counted}')
-        self.dataset_count_lable.grid(column=2, row=2, padx=30, sticky='w')
+                                            text=f'total time: {time_displayer(total_duration)}')
+        self.dataset_count_lable.grid(column=2, row=4, padx=300, sticky='w')
+
         # shortcuts keys for the buttons
         self.root.bind('1', lambda x: self.start_recording())
         self.root.bind('2', lambda x: self.stop_recording())
@@ -213,12 +239,12 @@ class AudioRecorder:
             return
         self.save_audio()
         self.filename = word_generator()
-        self.word_label['text'] = self.filename[0]
+        self.word_label['text'] = names_mapper[student_id] + " => " + self.filename[0]
         self.definition_label['text'] = self.filename[1]
-        counted = dataset_count(
+        total_duration = dataset_total_duration(
             os.path.join(self.output_folder,
                          OUTPUT_DATASET_FILENAME))
-        total_rows = f'total words: {counted}'
+        total_rows = f'total time: {time_displayer(total_duration)}'
         self.dataset_count_lable['text'] = total_rows
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
@@ -230,7 +256,7 @@ class AudioRecorder:
         if self.skip_button['state'] == tk.DISABLED:
             return
         self.filename = word_generator()
-        self.word_label['text'] = self.filename[0]
+        self.word_label['text'] = names_mapper[student_id] + " => " +self.filename[0]
         self.definition_label['text'] = self.filename[1]
         self.next_button.config(state=tk.DISABLED)
         self.replay_button.config(state=tk.DISABLED)
@@ -314,8 +340,6 @@ class AudioRecorder:
 
     def save_audio(self):
         """ saves the audio in the file system """
-        counted = dataset_count(os.path.join(self.output_folder,
-                                             OUTPUT_DATASET_FILENAME)) + 1
         rec_path = os.path.join(self.output_folder, RECORDINGS_OUTPUT_FOLDER)
         if not os.path.exists(rec_path):
             os.makedirs(rec_path)
@@ -323,15 +347,7 @@ class AudioRecorder:
         if self.filename[0].replace('/', '') == 'Null':
             return
         output_path = os.path.join(rec_path,
-                                   str(counted) + ".wav")
-        # counter = 0
-        # while os.path.exists(output_path):
-        #     output_path = os.path.join(self.output_folder,
-        #                                RECORDINGS_OUTPUT_FOLDER,
-        #                                self.filename[0]
-        #                                .replace('/', '') +
-        #                                f'({counter})'+".wav")
-        #     counter += 1
+                                   self.filename[0] + ".wav")
 
         wave_file = wave.open(output_path, 'wb')
         wave_file.setnchannels(self.channels)
@@ -340,10 +356,11 @@ class AudioRecorder:
         wave_file.writeframes(b''.join(self.frames))
         wave_file.close()
 
-        update_csv(os.path.join(self.output_folder, OUTPUT_DATASET_FILENAME), [str(counted), self.filename[0],
-                   self.filename[1]])
-        #  output_path.lstrip(self.output_folder)
-        #                             .lstrip('/').lstrip(r"\\")])
+        total_frames = len(b''.join(self.frames)
+                           ) // self.audio.get_sample_size(self.format)
+        total_seconds = total_frames / (self.channels * self.rate)
+        update_xls(os.path.join(self.output_folder, OUTPUT_DATASET_FILENAME), [self.filename[0],
+                   self.filename[1], output_path, total_seconds, self.voice_name])
 
     def run(self):
         """ runs the tkinter """
