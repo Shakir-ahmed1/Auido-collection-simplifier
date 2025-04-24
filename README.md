@@ -12,7 +12,7 @@ Audio collection simplifier is a desktop app that enables collecting voice data 
 
 - install all dependencies using `pip install -r requirements.txt`
 - run `python base.py` to run it
-  to get started you need dictionary.csv file in the main body of the project the dictonary.csv file must have two columns that translate from `tigrnigna`(col_1) to `english`(col_2)
+  to get started you need data.csv file in the main body of the project the dictonary.csv file must have two columns called `id`(col_1) to `text`(col_2)
 
 ### dev
 
