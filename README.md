@@ -9,8 +9,13 @@ Audio collection simplifier is a desktop app that enables collecting voice data 
 - it works on python version 3.10.5 (not tested on other versions)
 
 # Usage
+`git clone https://github.com/Shakir-ahmed1/Auido-collection-simplifier.git YOUR_NAME`;
+
+`cd YOUR_NAME`
+pip install venv
 
 - clone the `git clone https://github.com/Shakir-ahmed1/Auido-collection-simplifier.git YOUR_NAME`
+- `cd YOUR_NAME`
 - install venv `pip install venv`
 - create a new environment `python -m venv venv`
 - activate the environment `venv/scripts/activate`
