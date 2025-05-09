@@ -47,7 +47,7 @@ class AudioRecorder:
 
     def __init__(self):
         """ Initialization """
-        self.voice_name = 198
+        self.voice_name = student_id
         self.filename = word_generator()
         self.duration = 5
         self.chunk = 1024
